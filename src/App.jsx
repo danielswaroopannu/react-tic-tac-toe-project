@@ -1,10 +1,117 @@
+import GameBoard from "./components/GameBoard";
+import Log from "./components/Log";
+import Player from "./components/Player";
+import { useState } from "react";
+import { WINNING_COMBINATIONS } from "./winning-combinations";
+import GameOver from "./components/GameOver";
 
-function App() {
-  
+const initialGameBoard = [
+  [null, null, null],
+  [null, null, null],
+  [null, null, null],
+];
 
-  return (
-    <h1>React Tic-Tac-Toe</h1>
-  )
+function deriveActivePlayer(gameTurns) {
+  let currPlayer = "X";
+  if (gameTurns.length > 0 && gameTurns[0].player === "X") {
+    currPlayer = "O";
+  }
+
+  return currPlayer;
 }
 
-export default App
+function App() {
+  const [players, setPlayers] = useState({ X: "Player 1", O: "Player 2" });
+
+  const [gameTurns, setGameTurns] = useState([]);
+
+  const activePlayer = deriveActivePlayer(gameTurns);
+
+  function deriveGameBoard(gameTurns) {
+    let gameBoard = [...initialGameBoard.map((array) => [...array])];
+    for (const gameTurn of gameTurns) {
+      const { box, player } = gameTurn;
+      const { row, col } = box;
+      gameBoard[row][col] = player;
+    }
+    return gameBoard;
+  }
+
+  function deriveWinner(gameBoard, players) {
+    let winner;
+    for (const combination of WINNING_COMBINATIONS) {
+      const firstBoxSymbol =
+        gameBoard[combination[0].row][combination[0].column];
+      const secongBoxSymbol =
+        gameBoard[combination[1].row][combination[1].column];
+      const thirdBoxSymbol =
+        gameBoard[combination[2].row][combination[2].column];
+
+      if (
+        firstBoxSymbol &&
+        firstBoxSymbol === secongBoxSymbol &&
+        firstBoxSymbol === thirdBoxSymbol
+      ) {
+        winner = players[firstBoxSymbol];
+      }
+    }
+    return winner;
+  }
+  const gameBoard = deriveGameBoard(gameTurns);
+  const winner = deriveWinner(gameBoard, players);
+
+  const hasDraw = gameTurns.length === 9 && !winner;
+
+  function handleActivePlayer(rowIndex, colIndex) {
+    setGameTurns((prevTurn) => {
+      const currPlayer = deriveActivePlayer(prevTurn);
+
+      const updatedTurn = [
+        { box: { row: rowIndex, col: colIndex }, player: currPlayer },
+        ...prevTurn,
+      ];
+      return updatedTurn;
+    });
+  }
+
+  function handleRestart() {
+    setGameTurns([]);
+  }
+
+  function handlePlayersName(symbol, newName) {
+    setPlayers((prev) => {
+      return {
+        ...prev,
+        [symbol]: newName,
+      };
+    });
+  }
+
+  return (
+    <main>
+      <div id="game-container">
+        <ol id="players" className="highlight-player">
+          <Player
+            initialName="Player 1"
+            symbol="X"
+            isActive={activePlayer === "X"}
+            onChangeName={handlePlayersName}
+          />
+          <Player
+            initialName="Player 2"
+            symbol="O"
+            isActive={activePlayer === "O"}
+            onChangeName={handlePlayersName}
+          />
+        </ol>
+        {(winner || hasDraw) && (
+          <GameOver winner={winner} onRestart={handleRestart} />
+        )}
+        <GameBoard onSelectBox={handleActivePlayer} gameBoard={gameBoard} />
+      </div>
+      <Log gameTurns={gameTurns} />
+    </main>
+  );
+}
+
+export default App;
